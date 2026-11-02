@@ -1,0 +1,8 @@
+{
+  "status": "design-only; runner not implemented",
+  "wasabi_source": "~/Wasabi-was",
+  "tasks": "data/tasks.jsonl",
+  "setting": "interaction",
+  "max_user_turns": 3,
+  "output_dir": "runs/smoke"
+}
