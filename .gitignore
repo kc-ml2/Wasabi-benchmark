@@ -1,0 +1,11 @@
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+build/
+dist/
+.env
+.env.*
+runs/
+data/tasks.jsonl
+data/source/*.xlsx
