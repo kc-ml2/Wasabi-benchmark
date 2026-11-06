@@ -2,8 +2,8 @@
 
 An independent **Pi + Wasabi evaluation harness**, separate from OpenHands and
 inspired by InteractiveSWEAgents' data, experimental settings, and user simulator.
-This is an initial port: **Pi execution, Docker isolation, patch evaluation, and
-live model calls are not implemented yet.** Set `WASABI_SOURCE` to the local
+This is an initial port: **Pi execution, patch evaluation, and live model calls
+are not implemented yet.** Task checkout and offline Docker isolation are available. Set `WASABI_SOURCE` to the local
 Wasabi checkout (for example, `export WASABI_SOURCE="$HOME/Wasabi-was"`).
 
 ## Language
@@ -15,7 +15,8 @@ Preserve original benchmark data and quoted source material when appropriate.
 
 - `harness/tasks/`: task validation, JSONL loading, and agent-visible field selection
 - `harness/simulator/`: user simulator with an injected completion function (three replies by default)
-- `harness/agents/`, `sandbox/`, `evaluation/`: planned implementation areas
+- `harness/sandbox/`: pinned task checkouts and offline Docker isolation
+- `harness/agents/`, `harness/evaluation/`: planned implementation areas
 - `scripts/export_tasks.py`: source workbook to JSONL conversion
 - `configs/`: example experimental settings
 - `data/source/`: copied source data and provenance
@@ -37,6 +38,10 @@ python -m scripts.export_tasks
 The source workbook was copied locally and is excluded from Git. On another
 machine, see `data/source/README.md` for its provenance. Conversion requires
 `openpyxl`; task loading and simulator unit tests need no external packages.
+Workbook regression tests skip without `openpyxl`. After installing `.[data]`,
+run `python -m unittest discover -s tests -v` to include them.
+See [workspace preparation](harness/sandbox/README.md) for task selection, Docker
+commands, data boundaries and the verified smoke-test result.
 
 ## Experimental settings
 
@@ -67,7 +72,8 @@ Apply the evaluation test patch in a separate stage after the agent exits.
 ## Next steps
 
 1. Verify Pi/Wasabi loading and the RPC interaction contract.
-2. Prepare a Docker workspace and code checkout for one task.
+2. Integrate Pi/Wasabi into the prepared Docker workspace with explicit mounts
+   and model access permissions.
 3. Connect Wasabi model selection, clarification, and final approval responses,
    with separate interaction logging.
 4. Collect the final diff and evaluate tests in isolation.
