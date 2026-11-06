@@ -1,0 +1,3 @@
+[submodule "vendor/wasabi"]
+	path = vendor/wasabi
+	url = git@github.com:kc-ml2/Wasabi.git

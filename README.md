@@ -3,8 +3,8 @@
 An independent **Pi + Wasabi evaluation harness**, separate from OpenHands and
 inspired by InteractiveSWEAgents' data, experimental settings, and user simulator.
 This is an initial port: **Pi execution, patch evaluation, and live model calls
-are not implemented yet.** Task checkout and offline Docker isolation are available. Set `WASABI_SOURCE` to the local
-Wasabi checkout (for example, `export WASABI_SOURCE="$HOME/Wasabi-was"`).
+are not implemented yet.** Task checkout and offline Docker isolation are available.
+Wasabi is pinned as a Git submodule in `vendor/wasabi`.
 
 ## Language
 
@@ -27,12 +27,14 @@ Preserve original benchmark data and quoted source material when appropriate.
 ## Getting started
 
 ```bash
-export WASABI_SOURCE="$HOME/Wasabi-was"  # Set this to your checkout
-python3 -m unittest discover -s tests -v
+git submodule update --init --recursive
+npm --prefix vendor/wasabi ci  # Node.js >= 22.19.0; includes tested Pi 0.84.4
+export WASABI_SOURCE="$PWD/vendor/wasabi"
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -e '.[data]'
 python -m scripts.export_tasks
+python -m unittest discover -s tests -v
 ```
 
 The source workbook was copied locally and is excluded from Git. On another
