@@ -9,7 +9,8 @@ AGENT_FIELDS = {"instance_id", "repo", "base_commit", "problem_statement"}
 
 def container_command(bundle: str | Path, command: list[str], *,
                       image: str = "wasabi-sandbox:local",
-                      network: bool = False, env_names: tuple[str, ...] = ()) -> list[str]:
+                      network: bool = False, env_names: tuple[str, ...] = (),
+                      models_file: str | Path | None = None) -> list[str]:
     """Mount only a prepared checkout and an allowlisted input, offline by default.
 
     Docker is a defense-in-depth boundary, not a guarantee against kernel exploits.
@@ -38,9 +39,16 @@ def container_command(bundle: str | Path, command: list[str], *,
            for name in env_names):
         raise ValueError("Each requested environment variable must be set and have a valid name")
     environment = [item for name in env_names for item in ("--env", name)]
+    model_mount = []
+    if models_file is not None:
+        model_path = Path(models_file).absolute()
+        if model_path.is_symlink() or not model_path.is_file() or ',' in str(model_path):
+            raise ValueError("Expected a regular models.json file")
+        model_mount = ["--env", "PI_CODING_AGENT_DIR=/tmp", "--mount",
+                       f"type=bind,src={model_path},dst=/tmp/models.json,readonly"]
     return [
         "docker", "run", "--rm", *( [] if network else ["--network=none"] ), "--read-only",
-        *environment,
+        *environment, *model_mount,
         "--cap-drop=ALL", "--security-opt=no-new-privileges:true",
         "--pids-limit=256", "--memory=2g", "--cpus=2",
         "--user", f"{os.getuid()}:{os.getgid()}",
