@@ -40,6 +40,19 @@ Docker writes can change host workspace files.
   local Git commit pinning, failure cleanup, overwrite protection and mount policy.
   Workbook tests skip without `openpyxl`; install `.[data]` to run all tests.
 
-This image is only for workspace isolation checks, not Astropy test evaluation.
-Pi/Wasabi execution, model authentication, RPC integration and evaluation remain
-unimplemented. Their mount and network permissions require a separate design.
+The separate Pi image can be built with:
+
+```bash
+docker build -f harness/sandbox/Dockerfile.pi -t wasabi-pi:1.4.0 .
+```
+
+`harness.agents.runner.run_container` connects the Pi RPC stream to a
+`SimulatedUser` with an injected completion function. It uses an offline
+container and writes private RPC logs outside the bundle (new files, mode 0600).
+The automatic final approval policy must be explicitly enabled. Unknown dialogs
+are cancelled. Unit tests use a fake RPC process; an offline real-container
+smoke test reaches Pi but cannot run without model authentication. The model
+provider, credentials, network access, real completion function, and end-to-end
+model interaction are not configured. Agent coding-time questions are not
+connected. RPC logs can contain private answers; do not share or mount them.
+These images are not yet Astropy test evaluation environments.
