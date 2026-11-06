@@ -9,3 +9,4 @@ dist/
 runs/
 data/tasks.jsonl
 data/source/*.xlsx
+.sandbox/
