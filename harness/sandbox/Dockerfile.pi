@@ -1,0 +1,9 @@
+FROM node:24-bookworm-slim
+WORKDIR /opt/runtime
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev
+COPY vendor/wasabi/package.json /opt/wasabi/package.json
+COPY vendor/wasabi/extensions /opt/wasabi/extensions
+COPY vendor/wasabi/src /opt/wasabi/src
+WORKDIR /workspace
+ENTRYPOINT ["/opt/runtime/node_modules/.bin/pi", "--mode", "rpc", "--no-session", "--no-extensions", "--no-skills", "--no-prompt-templates", "--no-themes", "--no-context-files", "-e", "/opt/wasabi"]

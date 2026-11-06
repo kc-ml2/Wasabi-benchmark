@@ -1,0 +1,12 @@
+**
+!package.json
+!package-lock.json
+!vendor/
+!vendor/wasabi/
+!vendor/wasabi/package.json
+!vendor/wasabi/extensions/
+!vendor/wasabi/extensions/**
+!vendor/wasabi/src/
+!vendor/wasabi/src/**
+**/node_modules
+**/.git
