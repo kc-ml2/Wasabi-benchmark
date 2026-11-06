@@ -3,7 +3,8 @@
 An independent **Pi + Wasabi evaluation harness**, separate from OpenHands and
 inspired by InteractiveSWEAgents' data, experimental settings, and user simulator.
 This is an initial port: **Pi execution, Docker isolation, patch evaluation, and
-live model calls are not implemented yet.** Use `~/Wasabi-was` as the Wasabi source.
+live model calls are not implemented yet.** Set `WASABI_SOURCE` to the local
+Wasabi checkout (for example, `export WASABI_SOURCE="$HOME/Wasabi-was"`).
 
 ## Language
 
@@ -25,6 +26,7 @@ Preserve original benchmark data and quoted source material when appropriate.
 ## Getting started
 
 ```bash
+export WASABI_SOURCE="$HOME/Wasabi-was"  # Set this to your checkout
 python3 -m unittest discover -s tests -v
 python3 -m venv .venv
 source .venv/bin/activate

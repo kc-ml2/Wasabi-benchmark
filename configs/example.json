@@ -1,6 +1,6 @@
 {
   "status": "design-only; runner not implemented",
-  "wasabi_source": "~/Wasabi-was",
+  "wasabi_source_env": "WASABI_SOURCE",
   "tasks": "data/tasks.jsonl",
   "setting": "interaction",
   "max_user_turns": 3,

@@ -38,7 +38,8 @@ changing the existing personal configuration.
 Install and check the local source dependencies:
 
 ```bash
-cd ~/Wasabi-was
+export WASABI_SOURCE="$HOME/Wasabi-was"  # Adjust for your checkout
+cd "$WASABI_SOURCE"
 npm ci
 npm run check
 ```
@@ -49,7 +50,7 @@ Explicitly load only that package:
 cd ~/wasabi-benchmark
 
 pi --offline --no-session --no-extensions \
-  -e ~/Wasabi-was
+  -e "$WASABI_SOURCE"
 ```
 
 Run this command inside Pi:
