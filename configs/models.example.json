@@ -1,0 +1,7 @@
+{
+  "agent": {"provider": "openai", "model": "YOUR_AGENT_MODEL"},
+  "wasabi": {"model": "openai/YOUR_WASABI_MODEL"},
+  "simulator": {"provider": "openai", "model": "YOUR_SIMULATOR_MODEL"},
+  "network": true,
+  "container_api_key_env": ["OPENAI_API_KEY"]
+}

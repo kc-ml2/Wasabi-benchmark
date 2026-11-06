@@ -51,6 +51,32 @@ class RunnerTests(unittest.TestCase):
             with self.assertRaises(FileExistsError):
                 run_rpc([], TASK, SimulatedUser(TASK, complete), path)
 
+    def test_model_setup_is_confirmed_before_prompt(self):
+        script = r'''
+import json, sys
+read = lambda: json.loads(sys.stdin.buffer.readline())
+def send(x): print(json.dumps(x), flush=True)
+setup = read()
+assert setup['message'] == '/wasabi-model openai/test'
+send({'type':'extension_ui_request', 'method':'notify', 'id':'n', 'message':'Wasabi model: openai/test'})
+send({'type':'response', 'id':'setup', 'success':True, 'data':{'disposition':'handled'}})
+assert read()['message'] == 'public problem'
+send({'type':'response', 'id':'task', 'success':True, 'data':{'disposition':'handled'}})
+'''
+        with tempfile.TemporaryDirectory() as directory:
+            result = run_rpc([sys.executable, '-u', '-c', script], TASK,
+                             SimulatedUser(TASK, lambda _: 'answer'),
+                             Path(directory) / 'log', wasabi_model='openai/test', timeout=5)
+            self.assertEqual(result['disposition'], 'handled')
+
+    def test_unconfirmed_model_aborts(self):
+        script = "import json,sys; sys.stdin.readline(); print(json.dumps({'type':'response','id':'setup','success':True}),flush=True)"
+        with tempfile.TemporaryDirectory() as directory:
+            with self.assertRaisesRegex(RunError, 'selection failed'):
+                run_rpc([sys.executable, '-u', '-c', script], TASK,
+                        SimulatedUser(TASK, lambda _: 'answer'), Path(directory) / 'log',
+                        wasabi_model='openai/missing', timeout=5)
+
     def test_unexpected_exit_and_timeout(self):
         with tempfile.TemporaryDirectory() as directory:
             for script, name in [('pass', 'exit'), ('import time; time.sleep(30)', 'timeout')]:

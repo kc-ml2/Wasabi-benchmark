@@ -46,13 +46,24 @@ The separate Pi image can be built with:
 docker build -f harness/sandbox/Dockerfile.pi -t wasabi-pi:1.4.0 .
 ```
 
-`harness.agents.runner.run_container` connects the Pi RPC stream to a
-`SimulatedUser` with an injected completion function. It uses an offline
-container and writes private RPC logs outside the bundle (new files, mode 0600).
-The automatic final approval policy must be explicitly enabled. Unknown dialogs
-are cancelled. Unit tests use a fake RPC process; an offline real-container
-smoke test reaches Pi but cannot run without model authentication. The model
-provider, credentials, network access, real completion function, and end-to-end
-model interaction are not configured. Agent coding-time questions are not
-connected. RPC logs can contain private answers; do not share or mount them.
-These images are not yet Astropy test evaluation environments.
+`harness.agents.runner.run_container` connects Pi RPC to a `SimulatedUser`
+with an injected completion function. Pass `agent_provider` and `agent_model`
+for Pi's `--provider`/`--model`, and `wasabi_model` as `provider/model` for
+Wasabi's `/wasabi-model` command. Selection must be confirmed before the task
+is sent. `configs/models.example.json` is illustrative; it is not read yet.
+
+The default is offline. Pass `network=True` to enable Docker's normal network,
+and `env_names=("OPENAI_API_KEY",)` (for example) to pass only named, already
+set host environment variables. Keys are not placed in command arguments, but
+are visible to container processes, the Docker daemon and privileged host users.
+With network enabled, agent code can make unrestricted outbound connections and
+could disclose credentials or files. Use a limited, revocable key in a trusted
+experiment; this is not a strong boundary against a malicious agent. The host
+simulator completion function needs its own provider and credentials.
+
+Private RPC logs are created outside the bundle (new files, mode 0600). Automatic
+final approval must be explicitly enabled; unknown dialogs are cancelled. Unit
+tests use a fake RPC process. Real model interaction, a completion client and
+agent coding-time questions are not yet validated or implemented. RPC logs can
+contain private answers; do not share or mount them. These images are not yet
+Astropy test evaluation environments.

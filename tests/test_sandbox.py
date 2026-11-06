@@ -117,6 +117,13 @@ class BundleTests(unittest.TestCase):
             self.assertEqual(mounts[1],
                              f"type=bind,src={agent_input},dst=/input/task.json,readonly")
             self.assertNotIn("--privileged", command)
+            with patch.dict('os.environ', {'TEST_API_KEY': 'do-not-log'}):
+                online = container_command(bundle, ['true'], network=True, env_names=('TEST_API_KEY',))
+                self.assertNotIn('--network=none', online)
+                self.assertIn('TEST_API_KEY', online)
+                self.assertNotIn('do-not-log', ' '.join(online))
+            with self.assertRaises(ValueError):
+                container_command(bundle, ['true'], env_names=('NOT_SET_FOR_TEST_123',))
             agent_input.write_text(json.dumps(TASK.__dict__))
             with self.assertRaises(ValueError):
                 container_command(bundle, ["true"])
