@@ -21,7 +21,8 @@ def run_container(bundle: str | Path, task: Task, simulator: SimulatedUser,
                   log_path: str | Path, *, approve: bool = False,
                   timeout: float = 300, image: str = "wasabi-pi:1.4.0",
                   agent_provider: str, agent_model: str, wasabi_model: str,
-                  network: bool = False, env_names: tuple[str, ...] = ()) -> dict:
+                  network: bool = False, env_names: tuple[str, ...] = (),
+                  models_file: str | Path | None = None) -> dict:
     """Run Pi with explicit models; network and credential forwarding are opt-in."""
     import re
     for value in (agent_provider, agent_model, wasabi_model):
@@ -38,7 +39,8 @@ def run_container(bundle: str | Path, task: Task, simulator: SimulatedUser,
     args = ["--provider", agent_provider, "--model", agent_model]
     if not network:
         args.append("--offline")
-    command = container_command(bundle, args, image=image, network=network, env_names=env_names)
+    command = container_command(bundle, args, image=image, network=network,
+                                env_names=env_names, models_file=models_file)
     command.insert(2, "-i")
     return run_rpc(command, task, simulator, log, approve=approve, timeout=timeout,
                    wasabi_model=wasabi_model)

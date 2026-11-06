@@ -58,7 +58,9 @@ set host environment variables. Keys are not placed in command arguments, but
 are visible to container processes, the Docker daemon and privileged host users.
 With network enabled, agent code can make unrestricted outbound connections and
 could disclose credentials or files. Use a limited, revocable key in a trusted
-experiment; this is not a strong boundary against a malicious agent. The host
+experiment; this is not a strong boundary against a malicious agent. Use `models_file="configs/pi-models.json"` to mount the custom provider
+configuration read-only into Pi's temporary config directory. Treat this file as
+trusted code configuration: Pi supports credential commands in it. The host
 simulator completion function needs its own provider and credentials.
 
 Private RPC logs are created outside the bundle (new files, mode 0600). Automatic

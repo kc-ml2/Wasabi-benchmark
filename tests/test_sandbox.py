@@ -124,6 +124,11 @@ class BundleTests(unittest.TestCase):
                 self.assertNotIn('do-not-log', ' '.join(online))
             with self.assertRaises(ValueError):
                 container_command(bundle, ['true'], env_names=('NOT_SET_FOR_TEST_123',))
+            models = bundle / 'models.json'
+            models.write_text('{}')
+            configured = container_command(bundle, ['true'], models_file=models)
+            self.assertIn(f'type=bind,src={models},dst=/tmp/models.json,readonly', configured)
+            self.assertIn('PI_CODING_AGENT_DIR=/tmp', configured)
             agent_input.write_text(json.dumps(TASK.__dict__))
             with self.assertRaises(ValueError):
                 container_command(bundle, ["true"])
