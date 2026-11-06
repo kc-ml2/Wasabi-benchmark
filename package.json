@@ -1,0 +1,11 @@
+{
+  "name": "wasabi-benchmark-runtime",
+  "private": true,
+  "description": "Pinned Pi runtime for the benchmark controller",
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "dependencies": {
+    "@earendil-works/pi-coding-agent": "1.4.0"
+  }
+}

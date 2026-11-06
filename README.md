@@ -28,7 +28,8 @@ Preserve original benchmark data and quoted source material when appropriate.
 
 ```bash
 git submodule update --init --recursive
-npm --prefix vendor/wasabi ci  # Node.js >= 22.19.0; includes tested Pi 0.84.4
+npm ci  # Node.js >= 22.19.0; installs benchmark Pi 1.4.0
+npm --prefix vendor/wasabi ci  # Wasabi development dependencies
 export WASABI_SOURCE="$PWD/vendor/wasabi"
 python3 -m venv .venv
 source .venv/bin/activate
@@ -40,6 +41,10 @@ python -m unittest discover -s tests -v
 The source workbook was copied locally and is excluded from Git. On another
 machine, see `data/source/README.md` for its provenance. Conversion requires
 `openpyxl`; task loading and simulator unit tests need no external packages.
+Use `./node_modules/.bin/pi` for the benchmark's pinned Pi version; Wasabi's
+own development dependencies include a separate Pi version and do not select the
+benchmark runtime. The pinned Pi can load the Wasabi submodule in RPC mode; live
+model interactions and container integration have not yet been validated.
 Workbook regression tests skip without `openpyxl`. After installing `.[data]`,
 run `python -m unittest discover -s tests -v` to include them.
 See [workspace preparation](harness/sandbox/README.md) for task selection, Docker
