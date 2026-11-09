@@ -2,8 +2,8 @@
 
 An independent **Pi + Wasabi evaluation harness**, separate from OpenHands and
 inspired by InteractiveSWEAgents' data, experimental settings, and user simulator.
-This is an initial port: **Pi execution, patch evaluation, and live model calls
-are not implemented yet.** Task checkout and offline Docker isolation are available.
+This is an initial port: Pi/Wasabi RPC execution and a single-task SWE-bench
+evaluation have been smoke-tested; automated batch evaluation remains unfinished.
 Wasabi is pinned as a Git submodule in `vendor/wasabi`.
 
 ## Language
@@ -16,7 +16,8 @@ Preserve original benchmark data and quoted source material when appropriate.
 - `harness/tasks/`: task validation, JSONL loading, and agent-visible field selection
 - `harness/simulator/`: user simulator with an injected completion function (three replies by default)
 - `harness/sandbox/`: pinned task checkouts and offline Docker isolation
-- `harness/agents/`, `harness/evaluation/`: planned implementation areas
+- `harness/agents/`: Pi RPC controller and Wasabi dialog adapter
+- `harness/evaluation/`: prediction collection and SWE-bench evaluation instructions
 - `scripts/export_tasks.py`: source workbook to JSONL conversion
 - `configs/`: example experimental settings
 - `data/source/`: copied source data and provenance
