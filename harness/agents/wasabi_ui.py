@@ -24,6 +24,11 @@ class WasabiDialog:
             return None
         response = {"type": "extension_ui_response", "id": request["id"]}
         title = request.get("title", "")
+        # Wasabi uses a background select while the model is running. Responding
+        # with cancellation means "stop waiting"; leave it pending instead.
+        if method == "select" and (title.startswith("Wasabi · Checking request (Esc to stop waiting)")
+                                   or title.startswith("Wasabi · Clarifying request (Esc to stop waiting)")):
+            return None
         options = request.get("options", [])
         value = None
         if method == "select" and title.startswith("Wasabi · Clarification\n"):
