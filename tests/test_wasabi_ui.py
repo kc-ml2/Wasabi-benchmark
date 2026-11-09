@@ -40,6 +40,10 @@ class WasabiUITests(unittest.TestCase):
         request.update(title='Wasabi · Review final prompt\nDraft', options=['Approve and send', 'Cancel request'])
         self.assertEqual(adapter.respond(request)['value'], 'Cancel request')
 
+    def test_wait_dialog_is_not_cancelled(self):
+        self.assertIsNone(self.dialog('select', 'Wasabi · Checking request (Esc to stop waiting)',
+                                      ['Stop waiting']))
+
     def test_turn_limit_finishes_without_more_questions(self):
         self.simulator.max_turns = 0
         response = self.dialog('select', 'Wasabi · Clarification\nDetails',
