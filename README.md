@@ -62,8 +62,12 @@ commands, data boundaries and the verified smoke-test result.
 These names make the upstream base/hidden/interact distinction explicit. The
 current runner uses the `interaction` input and connects the simulator to Wasabi's
 initial clarification dialogs. It does not enforce all three settings at runtime
-or connect coding-time agent questions. Which interactions belong in the
-experiment remains undecided. Wasabi prompt clarification and Crunch code-change
+or connect coding-time agent questions. Initial clarification can involve multiple
+question-and-answer turns, but it finishes before coding begins. A future
+multi-step interaction mode could pause coding when the agent asks a question,
+route it to the user simulator, and resume the agent with the answer; this is not
+implemented or validated. The two interaction stages should remain separately
+configurable and logged. Wasabi prompt clarification and Crunch code-change
 approval are separate interactions.
 
 The upstream FakeUser condition `turns > 3` permits four replies. This port uses
