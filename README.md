@@ -4,7 +4,7 @@ An independent **Pi + Wasabi evaluation harness**, separate from OpenHands and
 inspired by InteractiveSWEAgents' data, experimental settings, and user simulator.
 This is an initial port: Pi/Wasabi RPC execution and a single-task SWE-bench
 evaluation have been smoke-tested; automated batch evaluation remains unfinished.
-Wasabi is pinned as a Git submodule in `vendor/wasabi`.
+Wasabi is pinned as a Git submodule in `external/wasabi`.
 
 ## Language
 
@@ -30,8 +30,8 @@ Preserve original benchmark data and quoted source material when appropriate.
 ```bash
 git submodule update --init --recursive
 npm ci  # Node.js >= 22.19.0; installs benchmark Pi 1.4.0
-npm --prefix vendor/wasabi ci  # Wasabi development dependencies
-export WASABI_SOURCE="$PWD/vendor/wasabi"
+npm --prefix external/wasabi ci  # Wasabi development dependencies
+export WASABI_SOURCE="$PWD/external/wasabi"
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -e '.[data]'
