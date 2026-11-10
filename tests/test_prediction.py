@@ -26,7 +26,13 @@ class PredictionTests(unittest.TestCase):
                 (dest / 'deleted').write_text('delete\n')
                 return dest
             output = root / 'prediction.jsonl'
-            with patch('harness.evaluation.prediction.prepare_workspace', side_effect=baseline):
+            run = subprocess.run
+            def checked_git(command, **kwargs):
+                self.assertIn('gc.auto=0', command)
+                self.assertIn('maintenance.auto=false', command)
+                return run(command, **kwargs)
+            with patch('harness.evaluation.prediction.prepare_workspace', side_effect=baseline), \
+                    patch('harness.evaluation.prediction.subprocess.run', side_effect=checked_git):
                 result = collect_prediction(TASK, workspace, output)
             self.assertEqual(json.loads(output.read_text()), result)
             self.assertEqual(output.stat().st_mode & 0o777, 0o600)
