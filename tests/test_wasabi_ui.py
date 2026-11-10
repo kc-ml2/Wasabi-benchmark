@@ -40,6 +40,19 @@ class WasabiUITests(unittest.TestCase):
         request.update(title='Wasabi · Review final prompt\nDraft', options=['Approve and send', 'Cancel request'])
         self.assertEqual(adapter.respond(request)['value'], 'Cancel request')
 
+    def test_recovery_preserves_original_and_requires_approval(self):
+        request = {'type': 'extension_ui_request', 'id': 'recovery', 'method': 'editor',
+                   'title': 'Wasabi · Review response and edit prompt\nUnvalidated text',
+                   'prefill': 'Original request'}
+        self.assertEqual(self.adapter.respond(request)['value'], 'Original request')
+        self.assertTrue(WasabiDialog(self.simulator).respond(request)['cancelled'])
+        self.assertEqual(self.dialog('select', 'Wasabi · Review final prompt (manual recovery)\nOriginal request',
+                                     ['Approve and send', 'Cancel request'])['value'], 'Approve and send')
+        self.assertEqual([item['event'] for item in self.adapter.log], ['recovery', 'recovery_approval'])
+        request.pop('prefill')
+        self.assertTrue(self.adapter.respond(request)['cancelled'])
+        self.assertEqual(self.simulator.turns, 0)
+
     def test_wait_dialog_is_not_cancelled(self):
         self.assertIsNone(self.dialog('select', 'Wasabi · Checking request (Esc to stop waiting)',
                                       ['Stop waiting']))
