@@ -2,9 +2,11 @@
 
 An independent **Pi + Wasabi evaluation harness**, separate from OpenHands and
 inspired by InteractiveSWEAgents' data, experimental settings, and user simulator.
-This is an initial port: Pi/Wasabi RPC execution and a single-task SWE-bench
-evaluation have been smoke-tested; automated batch evaluation remains unfinished.
-Wasabi is pinned as a Git submodule in `external/wasabi`.
+This is an initial port with parallel task execution, patch collection, and
+separate SWE-bench batch evaluation validated on a 10-task sample. Generation
+and evaluation are still separate steps, not one unified command.
+Wasabi is pinned as a Git submodule in `external/wasabi` at
+`614a531b04d13c4345d6c5983aec0356bdb8eb2a`.
 
 ## Language
 
@@ -19,6 +21,7 @@ Preserve original benchmark data and quoted source material when appropriate.
 - `harness/agents/`: Pi RPC controller and Wasabi dialog adapter
 - `harness/evaluation/`: prediction collection and SWE-bench evaluation instructions
 - `scripts/export_tasks.py`: source workbook to JSONL conversion
+- `scripts/run_small_benchmark.py`: parallel interaction runs and patch collection
 - `configs/`: example experimental settings
 - `data/source/`: copied source data and provenance
 - `reference/interactive_swe_agents/`: non-executable reference snapshots and license
@@ -45,11 +48,106 @@ machine, see `data/source/README.md` for its provenance. Conversion requires
 Use `./node_modules/.bin/pi` for the benchmark's pinned Pi version; Wasabi's
 own development dependencies include a separate Pi version and do not select the
 benchmark runtime. Pi and Wasabi have been exercised in a Docker container with
-live models and a controller-side simulator for one task.
+live models and a controller-side simulator across 10-task runs.
 Workbook regression tests skip without `openpyxl`. After installing `.[data]`,
 run `python -m unittest discover -s tests -v` to include them.
 See [workspace preparation](harness/sandbox/README.md) for task selection, Docker
 commands, data boundaries and the verified smoke-test result.
+
+## Required model assignments
+
+Use the following role-specific models for benchmark runs. Do not substitute a
+single model for all roles or silently fall back to another provider/model.
+
+| Role | Provider | Model ID |
+|---|---|---|
+| Pi coding agent | Centinels | `gpt-5.6-luna` |
+| Wasabi initial clarification | OpenRouter | `qwen/qwen3.8-flash` |
+| User simulator | Centinels | `gpt-6.1-sol` |
+
+Before launching a run, verify each role's model, provider configuration, and
+credentials, and record all three assignments in the run manifest. If a required
+model is unavailable, stop and ask rather than substitute. The exact Wasabi model
+ID above is authoritative; do not infer a different ID from a nickname such as
+“flash-next”.
+
+The runner accepts separate agent (`--provider`, `--model`), checker
+(`--wasabi-model`, as `provider/model`), and simulator (`--simulator-model`)
+assignments. The simulator uses the OpenAI-compatible endpoint and credential
+selected by `--base-url` and `--api-key-env`. Always supply both role overrides:
+omitting them defaults those roles to the agent model.
+`configs/pi-models.json` configures the custom Centinels agent provider;
+Wasabi uses Pi's built-in OpenRouter provider with `OPENROUTER_API_KEY`.
+
+**Historical exception:** the AES-38 first-10 smoke run used
+`centinels/gpt-5.6-luna` for all three roles. Its results remain a pipeline smoke
+test, not a run with the required model assignments above. See
+the local, Git-ignored report at `.sandbox/reports/aes38-small-benchmark.md`
+(not included in repository clones).
+
+## Run the 10-task sample in parallel
+
+After setup and task export, build a revision-specific image. Existing images do
+not update automatically when the submodule changes:
+
+```bash
+docker build -f harness/sandbox/Dockerfile.pi \
+  -t wasabi-pi:1.4.0-wasabi-614a531 .
+```
+
+Export `CENTINELS_API_KEY` and `OPENROUTER_API_KEY` through your secret-management
+environment; never put their values in tracked files or command arguments.
+Then run:
+
+```bash
+python -m scripts.run_small_benchmark \
+  --output runs/first10-unlimited \
+  --count 10 --workers 10 --timeout 600 \
+  --image wasabi-pi:1.4.0-wasabi-614a531 \
+  --provider centinels --model gpt-5.6-luna \
+  --wasabi-model openrouter/qwen/qwen3.8-flash \
+  --simulator-model gpt-6.1-sol \
+  --base-url https://centinels.ml2-alpha.com/v1 \
+  --api-key-env CENTINELS_API_KEY \
+  --container-api-key-env CENTINELS_API_KEY \
+  --container-api-key-env OPENROUTER_API_KEY \
+  --models-file configs/pi-models.json \
+  --unlimited-simulator-replies \
+  --allow-network-and-auto-approve
+```
+
+This selects the first 10 records in dataset order, not a random sample. Use a
+fresh output directory: existing directories are rejected. The image flag is
+important because the runner's default remains the older `wasabi-pi:1.4.0` tag.
+Omit `--unlimited-simulator-replies` to retain the default three-reply cap.
+The RPC timeout remains active in unlimited mode; it is not a total deadline
+for checkout preparation and patch collection.
+
+Artifacts include `manifest.json`, `results.json`, numbered `*.rpc.jsonl` logs,
+numbered `*.prediction.jsonl` files, and isolated agent bundles. Individual task
+errors are recorded without stopping the other tasks; inspect `results.json`
+rather than treating process exit or `completed` as proof of a correct patch.
+Here, `completed` means the RPC session settled, not that tests passed.
+
+### Checker-failure recovery
+
+With automatic approval enabled, a checker failure opens the new Wasabi recovery
+flow. The adapter returns the original prompt unchanged and explicitly approves
+it, ignoring the unvalidated checker response. It records `recovery` and
+`recovery_approval` separately from normal clarification. This is an automated
+experiment policy, **not human or simulator approval**, and does not mean the
+checker validated the prompt. Unknown dialogs still fail closed.
+
+### Evaluate the generated patches
+
+After generation finishes, combine the prediction files from that run into a
+single JSONL file and run the separate SWE-bench harness with `--max_workers 10`.
+See [evaluation instructions](harness/evaluation/README.md) for environment setup,
+dataset selection, and the evaluation command. Use a fresh run ID and private
+output directory. The generation manifest's `evaluation: not performed` field
+is a creation-time snapshot; subsequent evaluation reports are authoritative
+for test outcomes. The generation script does not launch evaluation or update
+that field afterward.
 
 ## Experimental settings
 
@@ -76,8 +174,10 @@ configurable and logged. Wasabi prompt clarification and Crunch code-change
 approval are separate interactions.
 
 The upstream FakeUser condition `turns > 3` permits four replies. This port uses
-`>=` to enforce the intended maximum of three. Models and API keys are not
-hardcoded.
+`>=` to enforce the default maximum of three. Unlimited mode uses
+`max_turns=None` and answers remaining offered questions without a count cap;
+it does not force Wasabi to generate more questions. Models are selected through
+CLI arguments and credentials through environment variables.
 
 ## Data boundaries
 
@@ -120,12 +220,19 @@ collection and the SWE-bench command.
 
 ## Validation and remaining work
 
-- The workbook was converted and loaded (500 tasks). One real task,
-  `astropy__astropy-12907`, was run end to end: Wasabi asked two questions,
-  the simulator answered, the final prompt was automatically approved, and Pi
-  edited the checkout. SWE-bench reported `resolved: true` (2 FAIL_TO_PASS and
-  13 PASS_TO_PASS tests passed). This is a single smoke test, not a batch result.
-- Wasabi still connects only initial clarification. The separate baseline runner
+- The workbook was converted and loaded (500 tasks). With the required model
+  assignments and Wasabi `614a531`, the first-10 sample produced 10 nonempty
+  patches in both capped and unlimited runs. Separate parallel SWE-bench
+  evaluation resolved 5/10 in the capped run and 4/10 in the unlimited run,
+  with no evaluation execution errors.
+- Neither run exceeded three simulator replies (maximum two in the capped run,
+  three in the unlimited run). These results do not establish an effect of
+  removing the cap: model responses, recovery paths, and patches varied.
+  All 10 tasks are Astropy tasks, not a representative benchmark sample.
+- Local, Git-ignored reports live under `.sandbox/reports/`; the unlimited-run
+  report is `aes38-unlimited-replies.md`. Raw artifacts remain under `runs/`.
+  These files are not included in repository clones.
+- Wasabi connects only initial clarification. The separate baseline runner
   connects coding-time questions with a configurable simulator reply cap.
   The [AES-37 baseline experiment](docs/experiments/aes37-baseline.md) completed
   30 evaluations: 5/10, 6/10 and 3/10 resolved across the three reply caps.
@@ -133,8 +240,12 @@ collection and the SWE-bench command.
 - `scripts/run_baseline_benchmark.py` runs independent task workspaces across
   reply budgets with bounded parallelism and collects predictions. SWE-bench
   evaluation remains a separate command rather than part of this runner.
-  `configs/models.example.json` illustrates configuration but is not read by the
-  runner. See the linked sandbox and evaluation docs for current manual steps.
+- Generation and evaluation are separate commands. `configs/models.example.json`
+  is illustrative and is not read by the runner. Model settings must be passed
+  explicitly using the CLI arguments above.
+- Dedicated Wasabi model-call audit-log retention is not yet wired into the
+  benchmark runner. UI reply counts must not be reported as checker invocation
+  counts.
 - Network access and API-key forwarding are opt-in. When enabled, agent
   processes can access forwarded credentials and make outbound connections;
   use restricted, revocable credentials and treat the container as defense in
