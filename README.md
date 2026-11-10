@@ -120,6 +120,8 @@ This selects the first 10 records in dataset order, not a random sample. Use a
 fresh output directory: existing directories are rejected. The image flag is
 important because the runner's default remains the older `wasabi-pi:1.4.0` tag.
 Omit `--unlimited-simulator-replies` to retain the default three-reply cap.
+Use `--simulator-reply-limit 5` for a five-reply cap (zero disables replies).
+Unlimited mode overrides this limit; the effective limit is recorded in the manifest.
 The RPC timeout remains active in unlimited mode; it is not a total deadline
 for checkout preparation and patch collection.
 
