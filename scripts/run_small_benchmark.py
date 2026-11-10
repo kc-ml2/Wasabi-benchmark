@@ -31,6 +31,8 @@ def main():
                         help='Repeat for each credential forwarded to containers')
     parser.add_argument('--workers', type=int, default=1)
     parser.add_argument('--image', default='wasabi-pi:1.4.0')
+    parser.add_argument('--simulator-reply-limit', type=int, default=3,
+                        help='Maximum simulator replies per task (default: 3)')
     parser.add_argument('--unlimited-simulator-replies', action='store_true',
                         help='No reply count cap; the per-task timeout still applies')
     parser.add_argument('--allow-network-and-auto-approve', action='store_true')
@@ -42,6 +44,10 @@ def main():
         parser.error('live execution requires explicit network and approval opt-in')
     if args.workers < 1:
         parser.error('workers must be positive')
+    if args.simulator_reply_limit < 0:
+        parser.error('simulator reply limit must be nonnegative')
+    if args.unlimited_simulator_replies:
+        args.simulator_reply_limit = None
     args.wasabi_model = args.wasabi_model or f'{args.provider}/{args.model}'
     args.simulator_model = args.simulator_model or args.model
     args.container_api_key_env = args.container_api_key_env or [args.api_key_env]
@@ -66,7 +72,7 @@ def main():
             prepare_workspace(task, bundle / 'workspace')
             (bundle / 'agent-input.json').write_text(json.dumps(task.agent_input(Setting.INTERACTION)))
             simulator = SimulatedUser(task, complete,
-                                      max_turns=None if args.unlimited_simulator_replies else 3)
+                                      max_turns=args.simulator_reply_limit)
             result = run_container(
                 bundle, task, simulator, args.output / f'{index}.rpc.jsonl',
                 approve=True, timeout=args.timeout, image=args.image, agent_provider=args.provider,
