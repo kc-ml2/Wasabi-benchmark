@@ -32,7 +32,10 @@ def collect_prediction(task: Task, workspace: str | Path, output: str | Path,
                'GIT_AUTHOR_NAME': 'Benchmark', 'GIT_AUTHOR_EMAIL': 'benchmark@invalid',
                'GIT_COMMITTER_NAME': 'Benchmark', 'GIT_COMMITTER_EMAIL': 'benchmark@invalid'}
         def git(*args):
-            return subprocess.run(['git', '-c', 'core.hooksPath=/dev/null', '-C', str(baseline), *args],
+            # Detached maintenance can race TemporaryDirectory cleanup.
+            return subprocess.run(['git', '-c', 'core.hooksPath=/dev/null',
+                                  '-c', 'gc.auto=0', '-c', 'maintenance.auto=false',
+                                  '-C', str(baseline), *args],
                                   env=env, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).stdout
         git('init', '-q')
         git('add', '-f', '--all')

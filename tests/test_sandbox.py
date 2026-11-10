@@ -39,6 +39,8 @@ class WorkspaceTests(unittest.TestCase):
             git("commit", "-am", "future")
 
             def local_fetch(command, **kwargs):
+                self.assertIn('gc.auto=0', command)
+                self.assertIn('maintenance.auto=false', command)
                 # Exercise real Git, redirecting only the remote to a local fixture.
                 if "fetch" in command:
                     command = [str(source) if arg == "https://github.com/owner/repo.git"

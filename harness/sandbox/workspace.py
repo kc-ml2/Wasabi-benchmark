@@ -26,7 +26,9 @@ def prepare_workspace(task: Task, destination: str | Path) -> Path:
     try:
         def git(*args: str) -> str:
             return subprocess.run(
-                ["git", "-c", "core.hooksPath=/dev/null", "-C", str(staging), *args],
+                ["git", "-c", "core.hooksPath=/dev/null",
+                 "-c", "gc.auto=0", "-c", "maintenance.auto=false",
+                 "-C", str(staging), *args],
                 check=True, text=True, capture_output=True, timeout=300,
             ).stdout.strip()
 
