@@ -11,8 +11,8 @@ LIMIT_REPLY = "Please continue working on the task. Do NOT ask for more help."
 
 
 class SimulatedUser:
-    def __init__(self, task: Task, complete: Completion, max_turns: int = 3):
-        if max_turns < 0:
+    def __init__(self, task: Task, complete: Completion, max_turns: int | None = 3):
+        if max_turns is not None and max_turns < 0:
             raise ValueError("max_turns must be nonnegative")
         self.complete = complete
         self.max_turns = max_turns
@@ -27,7 +27,7 @@ class SimulatedUser:
     def reply(self, question: str) -> str:
         if not question.strip():
             raise ValueError("question must not be empty")
-        if self.turns >= self.max_turns:
+        if self.max_turns is not None and self.turns >= self.max_turns:
             return LIMIT_REPLY
         messages = [dict(message) for message in self.history]
         messages.append({"role": "user", "content": question})

@@ -57,6 +57,17 @@ class WasabiUITests(unittest.TestCase):
         self.assertIsNone(self.dialog('select', 'Wasabi · Checking request (Esc to stop waiting)',
                                       ['Stop waiting']))
 
+    def test_unlimited_replies_continue_past_three(self):
+        self.simulator.max_turns = None
+        for index in range(5):
+            question = f'Question {index}?'
+            option = f'1. {question}'
+            self.assertEqual(self.dialog('select', 'Wasabi · Clarification\nDetails',
+                             [option, 'Finish clarification and review prompt'])['value'], option)
+            self.dialog('editor', f'Wasabi · {question} (close to return to controls)')
+        self.assertEqual(self.simulator.turns, 5)
+        self.assertEqual(len(self.adapter.log), 5)
+
     def test_turn_limit_finishes_without_more_questions(self):
         self.simulator.max_turns = 0
         response = self.dialog('select', 'Wasabi · Clarification\nDetails',

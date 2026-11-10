@@ -36,7 +36,8 @@ class WasabiDialog:
                          if re.match(r"^\d+\. ", option)]
             remaining = [(option, question) for option, question in questions
                          if question not in self.answered]
-            if remaining and self.simulator.turns < self.simulator.max_turns:
+            if remaining and (self.simulator.max_turns is None or
+                              self.simulator.turns < self.simulator.max_turns):
                 value, self.pending_question = remaining[0]
             elif "Finish clarification and review prompt" in options:
                 value = "Finish clarification and review prompt"
