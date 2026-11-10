@@ -62,11 +62,16 @@ commands, data boundaries and the verified smoke-test result.
 These names make the upstream base/hidden/interact distinction explicit. The
 current runner uses the `interaction` input and connects the simulator to Wasabi's
 initial clarification dialogs. It does not enforce all three settings at runtime
-or connect coding-time agent questions. Initial clarification can involve multiple
+or connect coding-time agent questions in the Wasabi runner. A separate
+[baseline runner](harness/agents/README.md) now supports coding-time questions
+without Wasabi, using an explicit question envelope and bounded simulator replies.
+This path has synthetic RPC test coverage and a successful live Luna/Sol
+question-answer-resume smoke test.
+Initial clarification can involve multiple
 question-and-answer turns, but it finishes before coding begins. A future
 multi-step interaction mode could pause coding when the agent asks a question,
 route it to the user simulator, and resume the agent with the answer; this is not
-implemented or validated. The two interaction stages should remain separately
+implemented for the Wasabi runner. The two interaction stages should remain separately
 configurable and logged. Wasabi prompt clarification and Crunch code-change
 approval are separate interactions.
 
@@ -120,10 +125,11 @@ collection and the SWE-bench command.
   the simulator answered, the final prompt was automatically approved, and Pi
   edited the checkout. SWE-bench reported `resolved: true` (2 FAIL_TO_PASS and
   13 PASS_TO_PASS tests passed). This is a single smoke test, not a batch result.
-- The experiment's treatment of initial Wasabi clarification versus coding-time
-  questions is **not yet decided**. Coding-time questions are not connected.
-- There is no unified reproducible command for configuration, execution and
-  evaluation, and automated multi-task batch evaluation is not implemented.
+- Wasabi still connects only initial clarification. The separate baseline runner
+  connects coding-time questions with a configurable simulator reply cap.
+- `scripts/run_baseline_benchmark.py` runs independent task workspaces across
+  reply budgets with bounded parallelism and collects predictions. SWE-bench
+  evaluation remains a separate command rather than part of this runner.
   `configs/models.example.json` illustrates configuration but is not read by the
   runner. See the linked sandbox and evaluation docs for current manual steps.
 - Network access and API-key forwarding are opt-in. When enabled, agent
