@@ -35,3 +35,24 @@ The timeout bounds RPC event waits across all turns, not a synchronous simulator
 HTTP call. Configure a finite HTTP timeout in the completion callable as well.
 The live Luna/Sol smoke test verified question delivery, one simulator reply,
 and resumed file creation. Unit tests additionally use synthetic Pi processes.
+
+## Batch execution
+
+```bash
+python3 -m scripts.run_baseline_benchmark \
+  --output runs/baseline-first10 --allow-network
+```
+
+Defaults: first 10 dataset tasks, 10 workers, reply budgets 1/2/3, Luna agent,
+Sol simulator, and a 600-second RPC timeout. Budgets run sequentially; tasks
+within each budget run concurrently. Every run gets a fresh checkout and
+simulator history. The output directory must not exist. Credentials come from
+`CENTINELS_API_KEY`; only its environment variable name is recorded.
+
+`manifest.json` records task IDs, dataset hash and configuration. Each numeric
+task directory contains a bundle, private RPC log and SWE-bench prediction.
+`results.json` is updated atomically after each task, including failures and
+actual simulator reply counts. A cap is not a quota: an agent can finish without
+asking any questions. The command exits nonzero if any run fails. SWE-bench
+scoring is a separate step; `completed` only means execution and patch collection
+succeeded, not that the patch resolved the issue.
