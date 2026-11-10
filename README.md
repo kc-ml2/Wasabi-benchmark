@@ -127,6 +127,9 @@ collection and the SWE-bench command.
   13 PASS_TO_PASS tests passed). This is a single smoke test, not a batch result.
 - Wasabi still connects only initial clarification. The separate baseline runner
   connects coding-time questions with a configurable simulator reply cap.
+  The [AES-37 baseline experiment](docs/experiments/aes37-baseline.md) completed
+  30 evaluations: 5/10, 6/10 and 3/10 resolved across the three reply caps.
+  All runs used zero simulator replies, so this does not measure a cap effect.
 - `scripts/run_baseline_benchmark.py` runs independent task workspaces across
   reply budgets with bounded parallelism and collects predictions. SWE-bench
   evaluation remains a separate command rather than part of this runner.
