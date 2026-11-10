@@ -51,6 +51,18 @@ class WasabiDialog:
             self.log.append({"event": "clarification", "question": self.pending_question,
                              "answer": value})
             self.pending_question = None
+        elif method == "editor" and title.startswith("Wasabi · Review response and edit prompt\n"):
+            original = request.get("prefill")
+            if self.approve and isinstance(original, str) and original.strip():
+                value = original
+                self.log.append({"event": "recovery", "policy": "automatic_original_unchanged",
+                                 "diagnostic": title})
+        elif method == "select" and title.startswith("Wasabi · Review final prompt (manual recovery)\n"):
+            if self.approve and "Approve and send" in options:
+                value = "Approve and send"
+                self.log.append({"event": "recovery_approval", "policy": "automatic", "review": title})
+            elif "Cancel request" in options:
+                value = "Cancel request"
         elif method == "select" and title.startswith("Wasabi · Review final prompt\n"):
             if self.approve and "Approve and send" in options:
                 value = "Approve and send"
