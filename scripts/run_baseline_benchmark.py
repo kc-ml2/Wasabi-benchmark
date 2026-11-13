@@ -7,7 +7,7 @@ import os
 from pathlib import Path
 import time
 
-from harness.agents.baseline import run_container
+from harness.agents.baseline import QUESTION_PARSER_VERSION, run_container
 from harness.evaluation.prediction import collect_prediction
 from harness.sandbox.workspace import prepare_workspace
 from harness.simulator.openai_compatible import completion
@@ -46,7 +46,8 @@ def main():
     selected = tasks[:args.count]
     manifest = {**vars(args), 'instance_ids': [t.instance_id for t in selected],
                 'selection': 'first N in dataset order', 'evaluation': 'not performed',
-                'tasks_sha256': hashlib.sha256(args.tasks.read_bytes()).hexdigest()}
+                'tasks_sha256': hashlib.sha256(args.tasks.read_bytes()).hexdigest(),
+                'question_parser_version': QUESTION_PARSER_VERSION}
     (args.output / 'manifest.json').write_text(json.dumps(manifest, default=str, indent=2) + '\n')
     results = []
 

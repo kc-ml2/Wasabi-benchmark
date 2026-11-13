@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from harness.agents.baseline import run_rpc, run_container
+from harness.agents.baseline import QUESTION_PARSER_VERSION, extract_question, run_rpc, run_container
 from harness.agents.rpc import RunError
 from harness.simulator.user import SimulatedUser
 from test_runner import TASK
@@ -65,6 +65,44 @@ class BaselineTests(unittest.TestCase):
                              SimulatedUser(TASK, lambda _: self.fail('Unexpected API call')),
                              Path(directory) / 'log', timeout=5)
             self.assertEqual(result['interactions'], [])
+
+    def test_single_envelope_with_surrounding_text(self):
+        self.assertEqual(extract_question('Before <user_question> Which? </user_question> After'),
+                         ('Which?', 'Before ', ' After'))
+        self.assertIsNone(extract_question('Fixed. Any questions?'))
+
+    def test_invalid_envelopes(self):
+        cases = [
+            '<user_question></user_question>',
+            '<user_question>   </user_question>',
+            '<user_question>Missing close',
+            'Missing open</user_question>',
+            '</user_question>reversed<user_question>',
+            '<user_question>A</user_question><user_question>B</user_question>',
+            '<user_question>A<user_question>B</user_question></user_question>',
+            '<user_question x="1">A</user_question>',
+            '<user_question>A</user_question><user_question',
+        ]
+        for text in cases:
+            with self.subTest(text=text), self.assertRaises(RunError):
+                extract_question(text)
+
+    def test_surrounding_text_is_logged_not_forwarded(self):
+        with tempfile.TemporaryDirectory() as directory:
+            script = 'LIMIT=1\nFINAL="Fixed."\n' + SCRIPT.replace(
+                "respond(p, '<user_question>Which behavior?</user_question>')",
+                "respond(p, 'Explanation. <user_question>Which behavior?</user_question> More prose.')")
+            simulator = SimulatedUser(TASK, lambda _: 'answer', max_turns=1)
+            log = Path(directory) / 'rpc.jsonl'
+            with patch.object(simulator, 'reply', wraps=simulator.reply) as reply:
+                result = run_rpc([sys.executable, '-u', '-c', script], TASK, simulator, log, timeout=5)
+                reply.assert_called_once_with('Which behavior?')
+            self.assertEqual(result['simulator_turns'], 1)
+            text = log.read_text()
+            self.assertIn('ignored_prefix', text)
+            self.assertIn('Explanation.', text)
+            self.assertIn('More prose.', text)
+            self.assertIn(QUESTION_PARSER_VERSION, text)
 
     def test_container_overrides_wasabi_entrypoint(self):
         with tempfile.TemporaryDirectory() as directory:
