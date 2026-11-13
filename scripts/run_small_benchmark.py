@@ -35,6 +35,8 @@ def main():
                         help='Maximum simulator replies per task (default: 3)')
     parser.add_argument('--unlimited-simulator-replies', action='store_true',
                         help='No reply count cap; the per-task timeout still applies')
+    parser.add_argument('--coding-question-limit', type=int, default=0,
+                        help='Coding-time user replies, separate from Wasabi (0: legacy mode; try 3)')
     parser.add_argument('--allow-network-and-auto-approve', action='store_true')
     args = parser.parse_args()
     tasks = load_tasks(args.tasks)
@@ -46,7 +48,9 @@ def main():
         parser.error('workers must be positive')
     if args.simulator_reply_limit < 0:
         parser.error('simulator reply limit must be nonnegative')
-    if args.unlimited_simulator_replies:
+    if args.coding_question_limit < 0:
+        parser.error('coding question limit must be nonnegative')
+    if args.coding_question_limit > 0 or args.unlimited_simulator_replies:
         args.simulator_reply_limit = None
     args.wasabi_model = args.wasabi_model or f'{args.provider}/{args.model}'
     args.simulator_model = args.simulator_model or args.model
@@ -59,7 +63,9 @@ def main():
     args.output.mkdir(parents=True, exist_ok=False)
     selected = tasks[:args.count]
     manifest = {**vars(args), 'instance_ids': [task.instance_id for task in selected],
-                'selection': 'first N in dataset order', 'evaluation': 'not performed'}
+                'selection': 'first N in dataset order', 'evaluation': 'not performed',
+                'interaction_protocol': 'wasabi-return-v1' if args.coding_question_limit else 'wasabi-initial-only',
+                'question_parser_version': 'single-envelope-v2' if args.coding_question_limit else None}
     (args.output / 'manifest.json').write_text(json.dumps(manifest, default=str, indent=2) + '\n')
     results = []
     def run_one(index, task):
@@ -77,7 +83,8 @@ def main():
                 bundle, task, simulator, args.output / f'{index}.rpc.jsonl',
                 approve=True, timeout=args.timeout, image=args.image, agent_provider=args.provider,
                 agent_model=args.model, wasabi_model=args.wasabi_model,
-                network=True, env_names=tuple(args.container_api_key_env), models_file=args.models_file)
+                network=True, env_names=tuple(args.container_api_key_env), models_file=args.models_file,
+                coding_question_limit=args.coding_question_limit)
             row.update(result)
             row['simulator_turns'] = simulator.turns
             prediction = collect_prediction(task, bundle / 'workspace',
