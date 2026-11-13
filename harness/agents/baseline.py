@@ -1,6 +1,6 @@
 """Coding-time user interaction without Wasabi or clarification preprocessing.
 
-Questions use an explicit whole-message envelope, not punctuation heuristics.
+Questions use an explicit single envelope, not punctuation heuristics.
 Only settled assistant text is routed to the controller-private simulator.
 """
 import json
@@ -21,7 +21,29 @@ using the available information without asking again.
 
 Issue:
 """
-QUESTION = re.compile(r"\A<user_question>\s*(.+?)\s*</user_question>\Z", re.DOTALL)
+QUESTION_PARSER_VERSION = 'single-envelope-v2'
+QUESTION = re.compile(r'<user_question>(.*?)</user_question>', re.DOTALL)
+QUESTION_TAG = re.compile(r'<\s*/?\s*user_question\b[^>]*(?:>|$)', re.IGNORECASE)
+
+
+def extract_question(text):
+    """Extract exactly one nonempty envelope; reject ambiguous/malformed tags.
+
+    Surrounding prose is tolerated, but is not forwarded to the simulator.
+    Quoted envelopes remain indistinguishable from intentional questions.
+    """
+    tags = QUESTION_TAG.findall(text)
+    if not tags:
+        return None
+    if tags != ['<user_question>', '</user_question>']:
+        raise RunError('Malformed baseline question envelope')
+    match = QUESTION.search(text)
+    if not match:
+        raise RunError('Malformed baseline question envelope')
+    question = match.group(1).strip()
+    if not question:
+        raise RunError('Empty baseline question')
+    return question, text[:match.start()], text[match.end():]
 
 
 def run_rpc(command, task, simulator, log_path, *, timeout=300):
@@ -61,10 +83,8 @@ def run_rpc(command, task, simulator, log_path, *, timeout=300):
                 settled = True
             if not (accepted and settled):
                 continue
-            match = QUESTION.fullmatch(final_text)
-            if not match:
-                if "<user_question>" in final_text or "</user_question>" in final_text:
-                    raise RunError("Malformed baseline question envelope")
+            extracted = extract_question(final_text)
+            if extracted is None:
                 if not final_text:
                     raise RunError("Baseline settled without a final assistant response")
                 result = {"disposition": "started", "settled": True,
@@ -74,9 +94,10 @@ def run_rpc(command, task, simulator, log_path, *, timeout=300):
                 return result
             if limit_sent:
                 raise RunError("Agent asked again after the reply limit notice")
-            question = match.group(1).strip()
-            if not question:
-                raise RunError("Empty baseline question")
+            question, prefix, suffix = extracted
+            rpc.record('question_parse', {'parser_version': QUESTION_PARSER_VERSION,
+                                         'raw_text': final_text, 'question': question,
+                                         'ignored_prefix': prefix, 'ignored_suffix': suffix})
             exhausted = simulator.turns >= simulator.max_turns
             answer = LIMIT_REPLY if exhausted else simulator.reply(question)
             limit_sent = exhausted

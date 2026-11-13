@@ -24,6 +24,17 @@ Sol and resumes Pi with the answer. Ordinary final text, even containing a
 question mark, is not interpreted as a question. One question message consumes
 one reply, even if it contains several questions.
 
+The shared `single-envelope-v2` parser accepts exactly one nonempty question
+block even when surrounding prose is present. Only the inner question is sent
+to the simulator; raw text and ignored prefix/suffix are preserved in a private
+`question_parse` log record. Duplicate, nested, incomplete, malformed or empty
+question tags are rejected. A quoted valid block is still treated as a question;
+this is an explicit protocol, not a semantic intent detector. The prompt continues
+to request a whole-message envelope. This rule applies to every baseline model,
+not just Luna. Manifests record `question_parser_version`. Historical manifests
+without that field used the strict whole-message parser; keep those results
+separate from v2 runs and do not silently combine them for controlled comparisons.
+
 After N successful simulator replies, the next question receives the fixed
 `LIMIT_REPLY` without calling Sol. Another question after this notice fails the
 run instead of creating an unlimited loop. Malformed envelopes, unexpected
