@@ -47,6 +47,25 @@ HTTP call. Configure a finite HTTP timeout in the completion callable as well.
 The live Luna/Sol smoke test verified question delivery, one simulator reply,
 and resumed file creation. Unit tests additionally use synthetic Pi processes.
 
+## Wasabi with coding-time return questions
+
+`scripts.run_small_benchmark --coding-question-limit 3` enables up to three
+coding-agent/user answer rounds, in addition to unlimited Wasabi clarification.
+A positive value automatically sets the shared simulator's `max_turns=None`;
+Wasabi clarification never consumes the separate coding reply budget. The same
+simulator history is retained across both types of interaction. Each coding
+answer is sent as a regular Pi prompt through the Wasabi extension again, with
+fresh clarification-dialog selection state. The common single-envelope-v2
+parser extracts coding questions. After the budget is exhausted, one fixed limit
+notice is sent through the same route; asking again fails. Timeouts still apply.
+
+Default `--coding-question-limit 0` preserves historical initial-only behavior.
+Manifests record `interaction_protocol`, parser version and effective limits;
+results separately count `coding_simulator_replies` and `wasabi_simulator_replies`.
+Do not combine this new condition with historical initial-only scores. Synthetic
+RPC tests cover re-entry and separate budgets; validate the pinned live Wasabi
+extension's re-entry behavior with a smoke run before large experiments.
+
 ## Batch execution
 
 ```bash

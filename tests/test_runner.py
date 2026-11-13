@@ -69,6 +69,37 @@ send({'type':'response', 'id':'task', 'success':True, 'data':{'disposition':'han
                              Path(directory) / 'log', wasabi_model='openai/test', timeout=5)
             self.assertEqual(result['disposition'], 'handled')
 
+    def test_coding_answers_reenter_wasabi_with_separate_budget(self):
+        script = r'''
+import json, sys
+read = lambda: json.loads(sys.stdin.readline())
+def send(x): print(json.dumps(x), flush=True)
+for turn in range(5):
+    p = read()
+    assert p['id'] == ('task' if turn == 0 else f'task-{turn}')
+    if turn: assert p['message'] == ('answer' if turn < 4 else 'Please continue working on the task. Do NOT ask for more help.')
+    def dialog(method, title, options=[]):
+        send(dict(type='extension_ui_request',id='dlg',method=method,title=title,options=options))
+        return read()
+    # Same clarification can be asked anew on each user reply.
+    assert dialog('select','Wasabi · Clarification\ndetails',['1. Which?', 'Finish clarification and review prompt'])['value']=='1. Which?'
+    assert dialog('select','Wasabi · Which?\nCurrent answer: Not answered',['Write an answer'])['value']=='Write an answer'
+    assert dialog('editor','Wasabi · Which? (close to return to controls)')['value']=='answer'
+    send(dict(type='response',id=p['id'],success=True,data=dict(disposition='started')))
+    text='Explanation <user_question>More?</user_question>' if turn < 4 else 'Fixed.'
+    send(dict(type='message_end',message=dict(role='assistant',content=[dict(type='text',text=text)])))
+    send(dict(type='agent_settled'))
+'''
+        with tempfile.TemporaryDirectory() as directory:
+            simulator = SimulatedUser(TASK, lambda _: 'answer', max_turns=None)
+            result = run_rpc([sys.executable, '-u', '-c', script], TASK, simulator,
+                             Path(directory) / 'log', approve=True, timeout=5, coding_question_limit=3)
+            self.assertEqual(result['coding_simulator_replies'], 3)
+            self.assertEqual(result['wasabi_simulator_replies'], 5)
+            self.assertEqual(simulator.turns, 8)
+            self.assertTrue(result['coding_interactions'][-1]['limit_reached'])
+            self.assertEqual(result['question_parser_version'], 'single-envelope-v2')
+
     def test_unconfirmed_model_aborts(self):
         script = "import json,sys; sys.stdin.readline(); print(json.dumps({'type':'response','id':'setup','success':True}),flush=True)"
         with tempfile.TemporaryDirectory() as directory:
