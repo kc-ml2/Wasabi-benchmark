@@ -26,7 +26,8 @@ def main():
     parser.add_argument('--provider', default='centinels')
     parser.add_argument('--model', default='gpt-5.6-luna')
     parser.add_argument('--simulator-model', default='gpt-6.1-sol')
-    parser.add_argument('--base-url', default='https://api.example.invalid/v1')
+    parser.add_argument('--base-url', required=True,
+                        help='OpenAI-compatible API base URL; no server address is bundled')
     parser.add_argument('--api-key-env', default='CENTINELS_API_KEY')
     parser.add_argument('--models-file', type=Path, default=Path('configs/pi-models.json'))
     parser.add_argument('--image', default='wasabi-pi:1.4.0')

@@ -51,11 +51,14 @@ of the full benchmark.
 
 ## Reproduction and artifacts
 
-With the dataset, pinned runtime image and `CENTINELS_API_KEY` available:
+With the dataset, pinned runtime image and `CENTINELS_API_KEY` available,
+set `BENCHMARK_BASE_URL` to your API endpoint and update the placeholder
+`baseUrl` in your local models configuration before running:
 
 ```bash
 python3 -m scripts.run_baseline_benchmark \
-  --output runs/aes37-baseline-first10 --allow-network
+  --output runs/aes37-baseline-first10 --allow-network \
+  --base-url "$BENCHMARK_BASE_URL"
 ```
 
 Use a new output directory when repeating the experiment. To evaluate, combine

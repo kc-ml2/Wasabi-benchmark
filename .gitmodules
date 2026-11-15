@@ -1,3 +1,3 @@
 [submodule "vendor/wasabi"]
 	path = external/wasabi
-	url = git@github.com:kc-ml2/Wasabi.git
+	url = https://github.com/kc-ml2/Wasabi.git
