@@ -4,6 +4,7 @@ Requires an existing SWE-bench environment and official dataset JSON.
 Stops on the first infrastructure error. No hidden test output reaches Pi.
 """
 import argparse
+from contextlib import ExitStack
 from concurrent.futures import ThreadPoolExecutor
 import threading
 import uuid
@@ -15,7 +16,7 @@ import subprocess
 import time
 
 from harness.agents.convergence import run_container
-from harness.evaluation.prediction import collect_prediction
+from harness.evaluation.prediction import prediction_collector
 from harness.sandbox.workspace import prepare_workspace
 from harness.simulator.openai_compatible import completion
 from harness.simulator.user import SimulatedUser
@@ -104,11 +105,13 @@ def main():
             bundle.mkdir(parents=True)
             row = dict(instance_id=task.instance_id, condition=mode, status='error')
             print(json.dumps(dict(event='start', instance_id=task.instance_id, condition=mode)), flush=True)
+            resources = ExitStack()
             row['detailed_logging'] = index % args.log_every == 0
             try:
                 prepare_workspace(task, bundle / 'workspace')
                 (bundle / 'agent-input.json').write_text(json.dumps(task.agent_input(Setting.INTERACTION)))
                 simulator = SimulatedUser(task, complete, max_turns=None)
+                collect = resources.enter_context(prediction_collector(task))
                 evaluation_records = []
 
                 def evaluate(number, remaining):
@@ -116,8 +119,7 @@ def main():
                     work = directory / f'submission-{number}'
                     work.mkdir()
                     prediction = work / 'prediction.jsonl'
-                    collected = collect_prediction(task, bundle / 'workspace', prediction,
-                                                   model_name='convergence')
+                    collected = collect(bundle / 'workspace', prediction, model_name='convergence')
                     # An empty patch is still evaluated: original checkout may already pass.
                     if not collected['model_patch'].strip():
                         # SWE-bench skips empty patches. A harmless added file makes the
@@ -166,6 +168,8 @@ def main():
                 if args.continue_on_error:
                     return
                 raise
+            finally:
+                resources.close()
             save(row)
             print(json.dumps(dict(event='complete', condition=mode, instance_id=task.instance_id,
                                   status=row['status'], submissions=len(row['submissions']))), flush=True)
