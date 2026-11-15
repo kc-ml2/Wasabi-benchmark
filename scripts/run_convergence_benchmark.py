@@ -33,6 +33,8 @@ def main():
     parser.add_argument('--workers', type=int, default=1)
     parser.add_argument('--continue-on-error', action='store_true',
                         help='Record failed trials and continue scheduling other task-condition pairs')
+    parser.add_argument('--log-every', type=int, default=1,
+                        help='Keep detailed RPC logs for every Nth task (default: 1, all tasks)')
     parser.add_argument('--retry-errors-from', type=Path,
                         help='Only rerun task-condition pairs marked error in this results JSON')
     parser.add_argument('--timeout', type=float, default=1800)
@@ -49,7 +51,7 @@ def main():
     if not args.allow_network_and_auto_approve:
         parser.error('Explicit network and approval opt-in required')
     tasks = load_tasks(args.tasks)
-    if not 0 < args.count <= len(tasks) or args.timeout <= 0 or args.max_submissions < 1 or args.coding_question_limit < 0 or args.workers < 1:
+    if not 0 < args.count <= len(tasks) or args.timeout <= 0 or args.max_submissions < 1 or args.coding_question_limit < 0 or args.workers < 1 or args.log_every < 1:
         parser.error('Invalid limits')
     for key in ('CENTINELS_API_KEY', 'OPENROUTER_API_KEY'):
         if not os.environ.get(key):
@@ -102,10 +104,12 @@ def main():
             bundle.mkdir(parents=True)
             row = dict(instance_id=task.instance_id, condition=mode, status='error')
             print(json.dumps(dict(event='start', instance_id=task.instance_id, condition=mode)), flush=True)
+            row['detailed_logging'] = index % args.log_every == 0
             try:
                 prepare_workspace(task, bundle / 'workspace')
                 (bundle / 'agent-input.json').write_text(json.dumps(task.agent_input(Setting.INTERACTION)))
                 simulator = SimulatedUser(task, complete, max_turns=None)
+                evaluation_records = []
 
                 def evaluate(number, remaining):
                     began = time.monotonic()
@@ -143,6 +147,8 @@ def main():
                         raise RuntimeError('Invalid report or patch application failure; inspect private logs')
                     print(json.dumps(dict(event='evaluation', condition=mode, instance_id=task.instance_id,
                                           submission=number, passed=report['resolved'])), flush=True)
+                    evaluation_records.append(dict(submission=number, passed=report['resolved']))
+                    (directory / 'evaluations.json').write_text(json.dumps(evaluation_records, indent=2))
                     return report['resolved']
 
                 row.update(run_container(bundle, task, simulator, directory / 'rpc.jsonl',
@@ -151,7 +157,7 @@ def main():
                            approve=True, timeout=args.timeout, max_submissions=args.max_submissions,
                            coding_question_limit=args.coding_question_limit, image=args.image,
                            network=True, env_names=('CENTINELS_API_KEY', 'OPENROUTER_API_KEY'),
-                           models_file=args.models_file))
+                           models_file=args.models_file, detailed_logging=row['detailed_logging']))
             except Exception as exc:
                 row['error'] = f'{type(exc).__name__}: {exc}'
                 if not args.continue_on_error:

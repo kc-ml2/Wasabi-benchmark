@@ -32,6 +32,8 @@ class RpcSession:
                 self.events.put(("eof", None))
 
     def record(self, direction, message):
+        if not getattr(self, 'detailed_logging', True):
+            return
         self.log.write(json.dumps({"direction": direction, "record": message}, ensure_ascii=False) + "\n")
         self.log.flush()
 

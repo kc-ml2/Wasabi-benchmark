@@ -47,6 +47,16 @@ class ConvergenceTests(unittest.TestCase):
         sent = [r['record']['message'] for r in records if r['direction'] == 'send']
         self.assertEqual(sent[1:], [FAILURE_FEEDBACK, 'Requirement answer.'])
 
+    def test_summary_only_logging_and_submission_counts(self):
+        result, records = self.run_case(
+            ['<user_question>Which?</user_question>', 'Done.', 'Revised.'],
+            lambda number, _: number == 2, detailed_logging=False)
+        self.assertEqual(records, [])
+        self.assertEqual([s['coding_replies'] for s in result['submissions']], [1, 0])
+        self.assertEqual(result['submissions'][-1]['cumulative_coding_replies'], 1)
+        self.assertNotIn('question', result['coding_interactions'][0])
+        self.assertEqual(result['interactions'], [])
+
     def test_submission_limit(self):
         result, _ = self.run_case(['Done.', 'Revised.'], lambda *_: False, max_submissions=2)
         self.assertEqual(result['status'], 'submission_limit')
