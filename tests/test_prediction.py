@@ -6,12 +6,35 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from harness.evaluation.prediction import collect_prediction
+from harness.evaluation.prediction import collect_prediction, prediction_collector
 from harness.tasks.schema import Task
 
 TASK = Task('fixture', 'owner/repo', 'a'*40, 'problem', 'private')
 
 class PredictionTests(unittest.TestCase):
+    def test_cached_checkout_is_pristine_and_cleaned_on_error(self):
+        paths = []
+        def baseline(task, dest):
+            dest.mkdir()
+            (dest / 'file').write_text('original\n')
+            paths.append(dest)
+            return dest
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            workspace = root / 'workspace'
+            workspace.mkdir()
+            with patch('harness.evaluation.prediction.prepare_workspace', side_effect=baseline) as prepare:
+                with self.assertRaisesRegex(RuntimeError, 'fixture'):
+                    with prediction_collector(TASK) as collect:
+                        for i in range(2):
+                            (workspace / 'file').write_text(f'change {i}\n')
+                            result = collect(workspace, root / f'{i}.jsonl')
+                            self.assertIn('-original', result['model_patch'])
+                            self.assertEqual((paths[0] / 'file').read_text(), 'original\n')
+                        self.assertEqual(prepare.call_count, 1)
+                        raise RuntimeError('fixture')
+            self.assertFalse(paths[0].exists())
+
     def test_patch_applies_and_includes_new_deleted_and_binary(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

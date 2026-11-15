@@ -1,4 +1,5 @@
 """Build SWE-bench predictions from controller-only baseline snapshots."""
+from contextlib import contextmanager
 import json
 import os
 from pathlib import Path
@@ -10,8 +11,25 @@ from harness.sandbox.workspace import prepare_workspace
 from harness.tasks.schema import Task
 
 
+@contextmanager
+def prediction_collector(task: Task):
+    """Cache one pristine checkout for a trial; clean it on success or exception.
+
+    Stored in controller temporary storage, never mounted into the agent.
+    Each submission works on a disposable copy, leaving the cached tree intact.
+    """
+    with tempfile.TemporaryDirectory(prefix='wasabi-pristine-') as directory:
+        pristine = prepare_workspace(task, Path(directory) / 'baseline')
+
+        def collect(workspace, output, *, model_name='pi-wasabi'):
+            return collect_prediction(task, workspace, output, model_name=model_name,
+                                      _pristine=pristine)
+
+        yield collect
+
+
 def collect_prediction(task: Task, workspace: str | Path, output: str | Path,
-                       *, model_name: str = "pi-wasabi") -> dict:
+                       *, model_name: str = "pi-wasabi", _pristine: Path | None = None) -> dict:
     """Compare a fresh pinned baseline against the agent tree using isolated Git.
 
     The fresh repository and index never enter the agent workspace. Never collect
@@ -26,7 +44,8 @@ def collect_prediction(task: Task, workspace: str | Path, output: str | Path,
         raise ValueError('Prediction must remain outside agent workspace')
     with tempfile.TemporaryDirectory(prefix='wasabi-baseline-') as directory:
         root = Path(directory)
-        baseline = prepare_workspace(task, root / 'baseline')
+        baseline = (prepare_workspace(task, root / 'baseline') if _pristine is None
+                    else Path(shutil.copytree(_pristine, root / 'baseline', symlinks=True)))
         env = {**os.environ, 'HOME': str(root), 'GIT_CONFIG_NOSYSTEM': '1',
                'GIT_CONFIG_GLOBAL': '/dev/null', 'GIT_ATTR_NOSYSTEM': '1',
                'GIT_AUTHOR_NAME': 'Benchmark', 'GIT_AUTHOR_EMAIL': 'benchmark@invalid',
