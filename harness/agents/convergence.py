@@ -23,7 +23,8 @@ FAILURE_FEEDBACK = (
 
 
 def run_rpc(command, task, simulator, log_path, *, evaluate, wasabi_model=None,
-            approve=False, timeout=1800, max_submissions=5, coding_question_limit=3):
+            approve=False, timeout=1800, max_submissions=5, coding_question_limit=3,
+            detailed_logging=True):
     """evaluate(submission_number, remaining_seconds) -> bool (controller only).
 
     No evaluation output is passed to the simulator. A single session/workspace
@@ -39,8 +40,10 @@ def run_rpc(command, task, simulator, log_path, *, evaluate, wasabi_model=None,
     submissions, questions, dialogs = [], [], []
     coding_replies = feedback_count = turn = 0
     limit_sent = False
+    previous_coding = previous_wasabi = 0
     adapter = WasabiDialog(simulator, approve=approve) if wasabi_model else None
     with rpc_session(command, log_path, timeout) as rpc:
+        rpc.detailed_logging = detailed_logging
         def remaining():
             value = rpc.deadline - time.monotonic()
             if value <= 0:
@@ -108,7 +111,8 @@ def run_rpc(command, task, simulator, log_path, *, evaluate, wasabi_model=None,
                 answer = LIMIT_REPLY if limit_sent else simulator.reply(question)
                 if not limit_sent:
                     coding_replies += 1
-                questions.append(dict(question=question, answer=answer, limit_reached=limit_sent))
+                questions.append(dict(question=question, answer=answer, limit_reached=limit_sent)
+                                 if detailed_logging else dict(limit_reached=limit_sent))
                 rpc.record('coding_interaction', questions[-1])
             else:
                 number = len(submissions) + 1
@@ -117,9 +121,15 @@ def run_rpc(command, task, simulator, log_path, *, evaluate, wasabi_model=None,
                 if type(passed) is not bool:
                     raise RunError('Evaluator must return bool; evaluation errors must raise')
                 remaining()
+                wasabi_replies = simulator.turns - initial_turns - coding_replies
                 submissions.append(dict(number=number, passed=passed,
+                                        coding_replies=coding_replies - previous_coding,
+                                        wasabi_replies=wasabi_replies - previous_wasabi,
+                                        cumulative_coding_replies=coding_replies,
+                                        cumulative_wasabi_replies=wasabi_replies,
                                         seconds=time.monotonic() - started,
                                         evaluation_seconds=time.monotonic() - evaluation_started))
+                previous_coding, previous_wasabi = coding_replies, wasabi_replies
                 rpc.record('submission', submissions[-1])
                 if passed or number >= max_submissions:
                     break
@@ -137,7 +147,7 @@ def run_rpc(command, task, simulator, log_path, *, evaluate, wasabi_model=None,
                       submissions=submissions, coding_interactions=questions,
                       coding_simulator_replies=coding_replies,
                       wasabi_simulator_replies=simulator.turns - initial_turns - coding_replies,
-                      feedback_count=feedback_count, interactions=dialogs,
+                      feedback_count=feedback_count, interactions=dialogs if detailed_logging else [],
                       seconds=time.monotonic() - started,
                       interaction_protocol='convergence-v1',
                       question_parser_version=QUESTION_PARSER_VERSION,
@@ -151,7 +161,7 @@ def run_container(bundle, task, simulator, log_path, *, evaluate,
                   agent_provider, agent_model, wasabi_model=None, approve=False,
                   timeout=1800, max_submissions=5, coding_question_limit=3,
                   image='wasabi-pi:1.4.0-wasabi-614a531', network=False,
-                  env_names=(), models_file=None):
+                  env_names=(), models_file=None, detailed_logging=True):
     """Launch baseline or Wasabi; evaluator artifacts must stay outside bundle."""
     for value in (agent_provider, agent_model, *([wasabi_model] if wasabi_model else [])):
         if not re.fullmatch(r'[A-Za-z0-9_.:/-]+', value) or value.startswith('-'):
@@ -175,4 +185,5 @@ def run_container(bundle, task, simulator, log_path, *, evaluate,
     command[2:2] = ['-i'] if wasabi_model else ['-i', '--entrypoint', '/opt/runtime/node_modules/.bin/pi']
     return run_rpc(command, task, simulator, log, evaluate=evaluate,
                    wasabi_model=wasabi_model, approve=approve, timeout=timeout,
-                   max_submissions=max_submissions, coding_question_limit=coding_question_limit)
+                   max_submissions=max_submissions, coding_question_limit=coding_question_limit,
+                   detailed_logging=detailed_logging)
