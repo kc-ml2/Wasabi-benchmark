@@ -2,9 +2,9 @@
 
 An independent **Pi + Wasabi evaluation harness**, separate from OpenHands and
 inspired by InteractiveSWEAgents' data, experimental settings, and user simulator.
-This is an initial port with parallel task execution, patch collection, and
-separate SWE-bench batch evaluation validated on a 10-task sample. Generation
-and evaluation are still separate steps, not one unified command.
+It supports parallel task execution, patch collection, SWE-bench evaluation,
+and paired convergence experiments. Experiments range from 10-task smoke tests
+to SWE-bench Verified's 500 tasks.
 Wasabi is pinned as a Git submodule in `external/wasabi` at
 `614a531b04d13c4345d6c5983aec0356bdb8eb2a`.
 
@@ -21,7 +21,11 @@ Preserve original benchmark data and quoted source material when appropriate.
 - `harness/agents/`: Pi RPC controller and Wasabi dialog adapter
 - `harness/evaluation/`: prediction collection and SWE-bench evaluation instructions
 - `scripts/export_tasks.py`: source workbook to JSONL conversion
-- `scripts/run_small_benchmark.py`: parallel interaction runs and patch collection
+- `scripts/run_small_benchmark.py`: parallel Wasabi interaction runs and patch collection
+- `scripts/run_baseline_benchmark.py`: baseline runs across simulator reply budgets
+- `scripts/run_convergence_benchmark.py`: paired convergence trials with private evaluation
+- `scripts/plot_convergence_results.py`: convergence result visualizations
+- `docs/experiments/`: experiment records and figures
 - `configs/`: example experimental settings
 - `data/source/`: copied source data and provenance
 - `reference/interactive_swe_agents/`: non-executable reference snapshots and license
@@ -56,8 +60,9 @@ commands, data boundaries and the verified smoke-test result.
 
 ## Required model assignments
 
-Use the following role-specific models for benchmark runs. Do not substitute a
-single model for all roles or silently fall back to another provider/model.
+The documented Wasabi experiment uses the following role-specific models. For
+reproducible comparisons, record the actual assignments and avoid silently
+substituting another provider or model.
 
 | Role | Provider | Model ID |
 |---|---|---|
@@ -85,7 +90,25 @@ test, not a run with the required model assignments above. See
 the local, Git-ignored report at `.sandbox/reports/aes38-small-benchmark.md`
 (not included in repository clones).
 
-## Run the 10-task sample in parallel
+## Benchmark workflows
+
+The Wasabi and baseline runners generate predictions for a separate SWE-bench
+evaluation step. The convergence runner instead runs paired trials with private
+SWE-bench evaluation during the experiment. For their current options, run:
+
+```bash
+python -m scripts.run_small_benchmark --help
+python -m scripts.run_baseline_benchmark --help
+python -m scripts.run_convergence_benchmark --help
+```
+
+The baseline runner compares simulator reply budgets without Wasabi; see
+[agent documentation](harness/agents/README.md). The convergence runner requires
+an existing SWE-bench environment and official evaluation dataset. See the
+[experiment timeline](docs/experiments/aes40-aes41-timeline.md) and
+[convergence figures](docs/experiments/figures/convergence/) for recorded work.
+
+### Run the 10-task Wasabi sample in parallel
 
 After setup and task export, build a revision-specific image. Existing images do
 not update automatically when the submodule changes:
@@ -222,6 +245,12 @@ collection and the SWE-bench command.
 
 ## Validation and remaining work
 
+- Larger experiments cover SWE-bench Verified's 500 tasks, including baseline,
+  Wasabi, and convergence investigations. See the
+  [AES-40/41 experiment timeline](docs/experiments/aes40-aes41-timeline.md)
+  for conditions and results, and the [convergence summary](docs/experiments/figures/convergence/convergence-summary.pdf)
+  for the plotted results.
+
 - The workbook was converted and loaded (500 tasks). With the required model
   assignments and Wasabi `614a531`, the first-10 sample produced 10 nonempty
   patches in both capped and unlimited runs. Separate parallel SWE-bench
@@ -242,9 +271,9 @@ collection and the SWE-bench command.
 - `scripts/run_baseline_benchmark.py` runs independent task workspaces across
   reply budgets with bounded parallelism and collects predictions. SWE-bench
   evaluation remains a separate command rather than part of this runner.
-- Generation and evaluation are separate commands. `configs/models.example.json`
-  is illustrative and is not read by the runner. Model settings must be passed
-  explicitly using the CLI arguments above.
+- For the Wasabi sample and baseline workflows, generation and evaluation are
+  separate steps. `configs/models.example.json` is illustrative and is not read
+  by the runner. Pass model settings explicitly using the CLI arguments.
 - Dedicated Wasabi model-call audit-log retention is not yet wired into the
   benchmark runner. UI reply counts must not be reported as checker invocation
   counts.
