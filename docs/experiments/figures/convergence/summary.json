@@ -1,0 +1,71 @@
+{
+  "generated_at_utc": "2026-11-16T03:08:20.664676+00:00",
+  "sources_in_precedence_order": [
+    "convergence-500-gpt6luna-budget10-20261114-090653",
+    "convergence-500-diagnostic-retry-20261114-091647",
+    "convergence-remaining490-20261114-092057",
+    "convergence-500-retry32-20261115-021432",
+    "convergence-500-retry32-rg-20261115-030256",
+    "convergence-empty108-rg-20261115-041738",
+    "convergence-rg-404-reconciled.json",
+    "convergence-timeout-retry-20261115-045937",
+    "convergence-errors28-workers2-20261115-053251",
+    "convergence-sphinx7985-retry-20261115-082726"
+  ],
+  "baseline": {
+    "status_counts": {
+      "resolved": 341,
+      "submission_limit": 134,
+      "interrupted_after_failed_evaluation": 17,
+      "error": 8
+    },
+    "resolved_request_count_known": 338,
+    "resolved_request_count_unknown": 3,
+    "mean_requests_resolved": 1.7248520710059172,
+    "cumulative_resolved_known": {
+      "0": 0,
+      "1": 215,
+      "2": 276,
+      "3": 301,
+      "4": 322,
+      "5": 332,
+      "6": 337,
+      "7": 338
+    }
+  },
+  "wasabi": {
+    "status_counts": {
+      "resolved": 371,
+      "submission_limit": 117,
+      "interrupted_after_failed_evaluation": 8,
+      "error": 4
+    },
+    "resolved_request_count_known": 369,
+    "resolved_request_count_unknown": 2,
+    "mean_requests_resolved": 1.4796747967479675,
+    "cumulative_resolved_known": {
+      "0": 0,
+      "1": 261,
+      "2": 329,
+      "3": 347,
+      "4": 363,
+      "5": 368,
+      "6": 369,
+      "7": 369
+    }
+  },
+  "paired": {
+    "n": 312,
+    "difference_distribution": {
+      "-3": 5,
+      "-2": 8,
+      "-1": 26,
+      "0": 192,
+      "1": 43,
+      "2": 19,
+      "3": 14,
+      "4": 3,
+      "5": 2
+    }
+  }
+}
