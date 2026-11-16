@@ -45,7 +45,8 @@ def main():
     parser.add_argument('--model', default='gpt-5.6-luna')
     parser.add_argument('--wasabi-model', default='openrouter/qwen/qwen3.8-flash')
     parser.add_argument('--simulator-model', default='gpt-6.1-sol')
-    parser.add_argument('--base-url', default='https://centinels.ml2-alpha.com/v1')
+    parser.add_argument('--base-url', required=True,
+                        help='OpenAI-compatible API base URL; no server address is bundled')
     parser.add_argument('--image', default='wasabi-pi:1.4.0-wasabi-614a531')
     parser.add_argument('--allow-network-and-auto-approve', action='store_true')
     args = parser.parse_args()
